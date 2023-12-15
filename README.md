@@ -69,4 +69,4 @@ python train_meta_export.py --config ./config/MYDATA_meta_export.conf
     tensorboard --logdir='runs/STL_import'
     ```
 - cpt folder: This folder stores all the parameters of the import and export models, facilitating direct reuse and further training.
-- .vscode folder: This folder includes configuration files for the Visual Studio Code (VSCode) Integrated Development Environment (IDE). These files are particularly useful when debugging in VSCode. Be aware that you may need to modify the file paths in these configurations to match your custom project paths.# TFSTL
+- .vscode folder: This folder includes configuration files for the Visual Studio Code (VSCode) Integrated Development Environment (IDE). These files are particularly useful when debugging in VSCode. Be aware that you may need to modify the file paths in these configurations to match your custom project paths.
