@@ -10,7 +10,7 @@ The model is implemented using Python3 with dependencies specified in requiremen
 
 The data for this project is located in the `data/MYDATA` folder. Within this folder, there are two subfolders organizing the dataset: 
 - The `import` folder contains data related to imports.
-- The `export` folder contains data related to imports.
+- The `export` folder contains data related to exports.
 
 ### Data Description
 
