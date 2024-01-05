@@ -5,7 +5,7 @@ import pickle
 import sys
 import torch
 import math
-from pytorch_wavelets import DWT1DForward, DWT1DInverse
+# from pytorch_wavelets import DWT1DForward, DWT1DInverse
 from statsmodels.tsa.seasonal import STL
 from collections import defaultdict
 import random
@@ -69,21 +69,21 @@ def seq2instance(data, P, Q):
         y[i] = data[i + P : i + P + Q]
     return x, y
 
-def disentangle(data, w, j):
-    # Disentangle
-    dwt = DWT1DForward(wave=w, J=j)
-    idwt = DWT1DInverse(wave=w)
-    torch_traffic = torch.from_numpy(data).transpose(1,-1).reshape(data.shape[0]*data.shape[2], -1).unsqueeze(1)
-    torch_trafficl, torch_traffich = dwt(torch_traffic.float())
-    placeholderh = torch.zeros(torch_trafficl.shape)
-    placeholderl = []
-    for i in range(j):
-        placeholderl.append(torch.zeros(torch_traffich[i].shape))
-    torch_trafficl = idwt((torch_trafficl, placeholderl)).reshape(data.shape[0],data.shape[2],1,-1).squeeze(2).transpose(1,2)
-    torch_traffich = idwt((placeholderh, torch_traffich)).reshape(data.shape[0],data.shape[2],1,-1).squeeze(2).transpose(1,2)
-    trafficl = torch_trafficl.numpy()
-    traffich = torch_traffich.numpy()
-    return trafficl, traffich
+# def disentangle(data, w, j):
+#     # Disentangle
+#     dwt = DWT1DForward(wave=w, J=j)
+#     idwt = DWT1DInverse(wave=w)
+#     torch_traffic = torch.from_numpy(data).transpose(1,-1).reshape(data.shape[0]*data.shape[2], -1).unsqueeze(1)
+#     torch_trafficl, torch_traffich = dwt(torch_traffic.float())
+#     placeholderh = torch.zeros(torch_trafficl.shape)
+#     placeholderl = []
+#     for i in range(j):
+#         placeholderl.append(torch.zeros(torch_traffich[i].shape))
+#     torch_trafficl = idwt((torch_trafficl, placeholderl)).reshape(data.shape[0],data.shape[2],1,-1).squeeze(2).transpose(1,2)
+#     torch_traffich = idwt((placeholderh, torch_traffich)).reshape(data.shape[0],data.shape[2],1,-1).squeeze(2).transpose(1,2)
+#     trafficl = torch_trafficl.numpy()
+#     traffich = torch_traffich.numpy()
+#     return trafficl, traffich
 
 def stl_decomposition(series):
     """
@@ -468,8 +468,8 @@ def extract_fields(dataset):
     return np.stack(XL), np.stack(XH), np.stack(TE), np.stack(Y), np.stack(YL)
 
 from collections import defaultdict
-from learn2learn.data.transforms import TaskTransform
-from learn2learn.data.task_dataset import DataDescription
+# from learn2learn.data.transforms import TaskTransform
+# from learn2learn.data.task_dataset import DataDescription
 import random
 
 # class MyFusedNWaysKShots(TaskTransform):
@@ -497,39 +497,39 @@ import random
 #         return task_description
 
 
-class MyFusedNWaysKShots(TaskTransform):
+# class MyFusedNWaysKShots(TaskTransform):
 
-    def __init__(self, dataset, meta_bsz):
-        super(MyFusedNWaysKShots, self).__init__(dataset)
-        self.meta_bsz = meta_bsz
+#     def __init__(self, dataset, meta_bsz):
+#         super(MyFusedNWaysKShots, self).__init__(dataset)
+#         self.meta_bsz = meta_bsz
 
-    def new_task(self):
-        task_size = len(self.dataset) // self.meta_bsz
-        task_description = []
-        for i in range(0, len(self.dataset), task_size):
-            if i + task_size > len(self.dataset):  # If the remaining tasks are less than task_size
-                remaining = len(self.dataset) - i
-                for j in range(i, i + remaining):
-                    dd = DataDescription(j)
-                    dd.transforms.append(lambda x: self.dataset[x])  # Add a transform to load the data
-                    task_description.append(dd)
-                # Randomly sample tasks to fill the last batch
-                for j in random.sample(range(len(self.dataset)), task_size - remaining):
-                    dd = DataDescription(j)
-                    dd.transforms.append(lambda x: self.dataset[x])  # Add a transform to load the data
-                    task_description.append(dd)
-                break
-            for j in range(i, i + task_size):
-                dd = DataDescription(j)
-                dd.transforms.append(lambda x: self.dataset[x])  # Add a transform to load the data
-                task_description.append(dd)
-        return task_description
+#     def new_task(self):
+#         task_size = len(self.dataset) // self.meta_bsz
+#         task_description = []
+#         for i in range(0, len(self.dataset), task_size):
+#             if i + task_size > len(self.dataset):  # If the remaining tasks are less than task_size
+#                 remaining = len(self.dataset) - i
+#                 for j in range(i, i + remaining):
+#                     dd = DataDescription(j)
+#                     dd.transforms.append(lambda x: self.dataset[x])  # Add a transform to load the data
+#                     task_description.append(dd)
+#                 # Randomly sample tasks to fill the last batch
+#                 for j in random.sample(range(len(self.dataset)), task_size - remaining):
+#                     dd = DataDescription(j)
+#                     dd.transforms.append(lambda x: self.dataset[x])  # Add a transform to load the data
+#                     task_description.append(dd)
+#                 break
+#             for j in range(i, i + task_size):
+#                 dd = DataDescription(j)
+#                 dd.transforms.append(lambda x: self.dataset[x])  # Add a transform to load the data
+#                 task_description.append(dd)
+#         return task_description
 
-    def __call__(self, task_description):
-        if task_description is None:
-            task_description = self.new_task()
-        task_description = [DataDescription(dd.index) for dd in task_description]
-        return task_description
+#     def __call__(self, task_description):
+#         if task_description is None:
+#             task_description = self.new_task()
+#         task_description = [DataDescription(dd.index) for dd in task_description]
+#         return task_description
 
 # def plot_metrics(maes, rmses, mapes, epochs, picture_dir):
 #     fig, axs = plt.subplots(3, figsize=(12, 10))  # 调整 figsize 参数来改变图窗的尺寸

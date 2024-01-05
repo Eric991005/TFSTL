@@ -3,8 +3,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import learn2learn as l2l
-from learn2learn.data.transforms import FusedNWaysKShots, LoadData, RemapLabels, ConsecutiveLabels
+# import learn2learn as l2l
+# from learn2learn.data.transforms import FusedNWaysKShots, LoadData, RemapLabels, ConsecutiveLabels
 import time
 import argparse
 import configparser
@@ -19,17 +19,6 @@ from lib.graph_utils import loadGraph
 from mymodel.models_meta import TFSTL
 import os
 from torch.utils.tensorboard import SummaryWriter
-
-tensorboard_folder = '/root/autodl-tmp/MYSTWave/runs/STL_export'
-
-# 检查并创建TensorBoard文件夹
-if not os.path.exists(tensorboard_folder):
-    os.makedirs(tensorboard_folder)
-    print(f"创建了文件夹：{tensorboard_folder}")
-else:
-    print(f"文件夹已存在：{tensorboard_folder}")
-
-tensor_writer = SummaryWriter(tensorboard_folder)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--config", type=str, help='configuration file')
@@ -84,6 +73,29 @@ args = parser.parse_args()
 log = open(args.log_file, 'w')
 
 device = torch.device(f"cuda:{args.cuda}" if torch.cuda.is_available() else "cpu")
+
+tensorboard_folder = '/root/autodl-tmp/MYSTWave/runs/STL_export'
+
+# Check and create the main TensorBoard folder
+if not os.path.exists(tensorboard_folder):
+    os.makedirs(tensorboard_folder)
+    log_string(log, f"Folder created: {tensorboard_folder}")
+else:
+    log_string(log, f"Folder already exists: {tensorboard_folder}")
+
+# Determine the name for the new subfolder
+subfolders = [f.name for f in os.scandir(tensorboard_folder) if f.is_dir()]
+versions = [int(folder.replace('version', '')) for folder in subfolders if folder.startswith('version')]
+next_version = 0 if not versions else max(versions) + 1
+new_folder = os.path.join(tensorboard_folder, f'version{next_version}')
+
+# Create the new subfolder
+if not os.path.exists(new_folder):
+    os.makedirs(new_folder)
+    log_string(log, f"Subfolder created: {new_folder}")
+
+# Create a SummaryWriter instance pointing to the new subfolder
+tensor_writer = SummaryWriter(new_folder)
 
 if args.seed is not None:
     random.seed(args.seed)
@@ -192,7 +204,7 @@ def test_res(model, valXL, valXH, valTE, valY, mean, std, adjgat):
         for row in data:
             writer.writerow(row)
 
-    print(f"已保存数据到 {file_path}")
+    log_string(log, f"Data saved to {file_path}")
 
     # 从 NumPy 数组中提取数据
     data = pred[:, 1, :]
@@ -204,7 +216,7 @@ def test_res(model, valXL, valXH, valTE, valY, mean, std, adjgat):
         for row in data:
             writer.writerow(row)
 
-    print(f"已保存数据到 {file_path}")
+    log_string(log, f"Data saved to {file_path}")
 
     # 从 NumPy 数组中提取数据
     data = label[:, 0, :]
@@ -216,7 +228,7 @@ def test_res(model, valXL, valXH, valTE, valY, mean, std, adjgat):
         for row in data:
             writer.writerow(row)
 
-    print(f"已保存数据到 {file_path}")
+    log_string(log, f"Data saved to {file_path}")
 
     # 从 NumPy 数组中提取数据
     data = label[:, 1, :]
@@ -228,7 +240,7 @@ def test_res(model, valXL, valXH, valTE, valY, mean, std, adjgat):
         for row in data:
             writer.writerow(row)
 
-    print(f"已保存数据到 {file_path}")
+    log_string(log, f"Data saved to {file_path}")
 
     return np.stack(maes, 0), np.stack(rmses, 0), np.stack(mapes, 0)
 

@@ -3,8 +3,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import learn2learn as l2l
-from learn2learn.data.transforms import FusedNWaysKShots, LoadData, RemapLabels, ConsecutiveLabels
+# import learn2learn as l2l
+# from learn2learn.data.transforms import FusedNWaysKShots, LoadData, RemapLabels, ConsecutiveLabels
 import time
 import argparse
 import configparser
@@ -20,18 +20,6 @@ from mymodel.models_meta import TFSTL
 import matplotlib.pyplot as plt
 import os
 from torch.utils.tensorboard import SummaryWriter
-tensorboard_folder = '/root/autodl-tmp/MYSTWave/runs/STL_import'
-# 检查并创建TensorBoard文件夹
-if not os.path.exists(tensorboard_folder):
-    os.makedirs(tensorboard_folder)
-    print(f"创建了文件夹：{tensorboard_folder}")
-else:
-    print(f"文件夹已存在：{tensorboard_folder}")
-
-tensor_writer = SummaryWriter(tensorboard_folder)
-# output_folder = "/root/autodl-tmp/MYSTWave/picture/VMD_output"
-
-
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--config", type=str, help='configuration file')
@@ -86,6 +74,29 @@ args = parser.parse_args()
 log = open(args.log_file, 'w')
 
 device = torch.device(f"cuda:{args.cuda}" if torch.cuda.is_available() else "cpu")
+
+tensorboard_folder = '/root/autodl-tmp/MYSTWave/runs/STL_import'
+
+# Check and create the main TensorBoard folder
+if not os.path.exists(tensorboard_folder):
+    os.makedirs(tensorboard_folder)
+    log_string(log, f"Folder created: {tensorboard_folder}")
+else:
+    log_string(log, f"Folder already exists: {tensorboard_folder}")
+
+# Determine the name for the new subfolder
+subfolders = [f.name for f in os.scandir(tensorboard_folder) if f.is_dir()]
+versions = [int(folder.replace('version', '')) for folder in subfolders if folder.startswith('version')]
+next_version = 0 if not versions else max(versions) + 1
+new_folder = os.path.join(tensorboard_folder, f'version{next_version}')
+
+# Create the new subfolder
+if not os.path.exists(new_folder):
+    os.makedirs(new_folder)
+    log_string(log, f"Subfolder created: {new_folder}")
+
+# Create a SummaryWriter instance pointing to the new subfolder
+tensor_writer = SummaryWriter(new_folder)
 
 if args.seed is not None:
     random.seed(args.seed)
@@ -194,7 +205,7 @@ def test_res(model, valXL, valXH, valTE, valY, mean, std, adjgat):
         for row in data:
             writer.writerow(row)
 
-    print(f"已保存数据到 {file_path}")
+    log_string(log, f"Data saved to {file_path}")
 
     # 从 NumPy 数组中提取数据
     data = pred[:, 1, :]
@@ -206,7 +217,7 @@ def test_res(model, valXL, valXH, valTE, valY, mean, std, adjgat):
         for row in data:
             writer.writerow(row)
 
-    print(f"已保存数据到 {file_path}")
+    log_string(log, f"Data saved to {file_path}")
 
     # 从 NumPy 数组中提取数据
     data = label[:, 0, :]
@@ -218,7 +229,7 @@ def test_res(model, valXL, valXH, valTE, valY, mean, std, adjgat):
         for row in data:
             writer.writerow(row)
 
-    print(f"已保存数据到 {file_path}")
+    log_string(log, f"Data saved to {file_path}")
 
     # 从 NumPy 数组中提取数据
     data = label[:, 1, :]
@@ -230,7 +241,8 @@ def test_res(model, valXL, valXH, valTE, valY, mean, std, adjgat):
         for row in data:
             writer.writerow(row)
 
-    print(f"已保存数据到 {file_path}")
+    log_string(log, f"Data saved to {file_path}")
+
 
     return np.stack(maes, 0), np.stack(rmses, 0), np.stack(mapes, 0)
 
@@ -285,47 +297,6 @@ def train(model, trainX, trainXL, trainXH, trainTE, trainY, trainYL, valX, valXL
                 train_l_sum += loss.cpu().item()
                 batch_count += 1
                 pbar.update(1)
-
-            # # 计算原始序列和重构序列之间的差距
-            # reconstructed_x = xl + xh
-            # # 计算 MAPE
-            # # difference = torch.abs((x - reconstructed_x) / x)
-            # # mape = torch.mean(difference).item() * 100  # MAPE值乘以100得到百分比
-
-            # difference = torch.abs(x - reconstructed_x)
-            # mae = difference.mean().item()              
-            # 将信息记录到日志文件
-            # log_string(log, f"Epoch {epoch+1} - MAE: {mae:.2f}")
-            # Define the epochs at which you want to generate plots
-            # plot_epochs = [1, 11, 51, 101, 200]  # epochs are 1-indexed for human readability
-
-            # # After each epoch, check if it's one of the specified epochs
-            # if (epoch + 1) in plot_epochs:
-            #     # Generate and save the plot
-            #     fig, axes = plt.subplots(3, 1, figsize=(10, 6))
-
-            #     epoch_title = f'Epoch {epoch + 1}'
-            #     axes[0].plot(x[:,:,4].flatten().detach().cpu().numpy(), label='Inputs')
-            #     axes[0].set_title(f'Inputs - {epoch_title}')
-            #     axes[0].legend()
-
-            #     axes[1].plot(xl[:,:,4].flatten().detach().cpu().numpy(), label='Low-frequency Component (XL)')
-            #     axes[1].set_title(f'Low-frequency Component (XL) - {epoch_title}')
-            #     axes[1].legend()
-
-            #     axes[2].plot(xh[:,:,4].flatten().detach().cpu().numpy(), label='High-frequency Component (XH)')
-            #     axes[2].set_title(f'High-frequency Component (XH) - {epoch_title}')
-            #     axes[2].legend()
-
-            #     plt.tight_layout()
-            #     plot_filename = os.path.join(output_folder, f'static_visual_epoch_{epoch+1}.png')
-            #     plt.savefig(plot_filename)
-            #     tensor_writer.add_figure(f'Series Parametric Visual Epoch {epoch+1}', fig, epoch)
-            #     plt.close(fig)
-
-            #     # Log the event
-            #     log_string(log, f"Plot saved for epoch {epoch+1}: {plot_filename}")
-
 
         log_string(log, 'epoch %d, lr %.6f, loss %.4f, time %.1f sec'
               % (epoch, optimizer.param_groups[0]['lr'], train_l_sum / batch_count, time.time() - start))
