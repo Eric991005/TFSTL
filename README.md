@@ -1,7 +1,6 @@
 # TFSTL
 This is a PyTorch implementation of the paper: Trade Forecasting via Efficient Multi-commodity STL Decomposition based Neural Networks.
 
-[12/2023] TFSTL is currently under peer review.
 
 ## Requirements
 
