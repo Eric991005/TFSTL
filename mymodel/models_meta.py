@@ -27,20 +27,13 @@ def maml_init_(module):
         for linear_layer in module.linear:
             torch.nn.init.xavier_uniform_(linear_layer.weight.data, gain=1.0)
             torch.nn.init.constant_(linear_layer.bias.data, 0.0)
-    elif isinstance(module, STWaveOutput):
+    elif isinstance(module, TFSTLOutput):
         maml_init_(module.end_emb)
         maml_init_(module.end_emb_l)
     else:
         torch.nn.init.xavier_uniform_(module.weight.data, gain=1.0)
         torch.nn.init.constant_(module.bias.data, 0.0)
     return module
-
-
-# def maml_init_(module):
-#     if isinstance(module, nn.Linear):  # 只初始化 nn.Linear 的实例
-#         torch.nn.init.xavier_uniform_(module.weight.data, gain=1.0)
-#         torch.nn.init.constant_(module.bias.data, 0.0)
-#     return module
 
 class temporalEmbedding(nn.Module):
     def __init__(self, D):
@@ -283,9 +276,9 @@ class dualEncoder(nn.Module):
         
         return xl, xh
     
-class STWave(nn.Module):
+class TFSTL(nn.Module):
     def __init__(self, infea, outfea, L, h, d, s, T1, T2, dev):
-        super(STWave, self).__init__()
+        super(TFSTL, self).__init__()
         global device
         device = dev
         self.start_emb_l = FeedForward([infea, outfea, outfea])
@@ -320,9 +313,9 @@ class STWave(nn.Module):
         return hat_y.squeeze(-1), hat_y_l.squeeze(-1)
 
 
-class STWaveBackbone(nn.Module):
+class TFSTLBackbone(nn.Module):
     def __init__(self, infea, outfea, L, h, d, s, T1, T2, dev):
-        super(STWaveBackbone, self).__init__()
+        super(TFSTLBackbone, self).__init__()
         global device
         device = dev
         self.start_emb_l = FeedForward([infea, outfea, outfea])
@@ -356,9 +349,9 @@ class STWaveBackbone(nn.Module):
         
         return hat_y, hat_y_l
     
-class STWaveOutput(nn.Module):
+class TFSTLOutput(nn.Module):
     def __init__(self, outfea, dev):
-        super(STWaveOutput, self).__init__()
+        super(TFSTLOutput, self).__init__()
         global device
         device = dev
         self.end_emb = FeedForward([outfea, outfea, 1])
@@ -376,10 +369,8 @@ class STWaveOutput(nn.Module):
 class TFSTL(torch.nn.Module):
     def __init__(self, infea, outfea, L, h, d, s, T1, T2, dev):
         super(TFSTL, self).__init__()
-        self.features = STWaveBackbone(infea, outfea, L, h, d, s, T1, T2, dev)
-        # self.end_emb = FeedForward([outfea, outfea, 1])
-        # self.end_emb_l = FeedForward([outfea, outfea, 1])
-        self.classifier = STWaveOutput(outfea, dev)
+        self.features = TFSTLBackbone(infea, outfea, L, h, d, s, T1, T2, dev)
+        self.classifier = TFSTLOutput(outfea, dev)
         maml_init_(self.classifier)
 
     def forward(self, xl, xh, te, adjgat):

@@ -3,18 +3,15 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-# import learn2learn as l2l
-# from learn2learn.data.transforms import FusedNWaysKShots, LoadData, RemapLabels, ConsecutiveLabels
 import time
 import argparse
 import configparser
 import csv
 import math
 import random
-# from pytorch_wavelets import DWT1DForward, DWT1DInverse
 
 from lib import utils_meta
-from lib.utils_meta import log_string, loadData, _compute_loss, metric, TrafficDataset
+from lib.utils_meta import log_string, _compute_loss, metric, TradeDataset, save_to_csv
 from lib.graph_utils import loadGraph
 from mymodel.models_meta import TFSTL
 import os
@@ -62,7 +59,7 @@ parser.add_argument('--s', type = float,
 parser.add_argument('--w',
             default = config['param']['wave'])
 
-parser.add_argument('--traffic_file', default = config['file']['traffic'])
+parser.add_argument('--trade_file', default = config['file']['trade'])
 parser.add_argument('--adj_file', default = config['file']['adj'])
 parser.add_argument('--adjgat_file', default = config['file']['adjgat'])
 parser.add_argument('--model_file', default = config['file']['model'])
@@ -74,7 +71,7 @@ log = open(args.log_file, 'w')
 
 device = torch.device(f"cuda:{args.cuda}" if torch.cuda.is_available() else "cpu")
 
-tensorboard_folder = '/root/autodl-tmp/MYSTWave/runs/STL_export'
+tensorboard_folder = '/root/autodl-tmp/TFSTL_Upload_Maintenance/runs/STL_export'
 
 # Check and create the main TensorBoard folder
 if not os.path.exists(tensorboard_folder):
@@ -104,7 +101,7 @@ if args.seed is not None:
     torch.cuda.manual_seed(args.seed)
     torch.backends.cudnn.deterministic = True
 
-def res(model, valXL, valXH, valTE, valY, mean, std, adjgat):
+def res(model, valXL, valXH, valTE, valY, mean, std, adjgat, epoch, tensor_writer):
     model.eval()
     num_val = valXL.shape[0]
     num_batch = math.ceil(num_val / args.batch_size)
@@ -147,6 +144,10 @@ def res(model, valXL, valXH, valTE, valY, mean, std, adjgat):
     rmses.append(rmse)
     mapes.append(mape)
     log_string(log, 'average, mae: %.4f, rmse: %.4f, mape: %.4f' % (mae, rmse, mape, ))
+
+    tensor_writer.add_scalar('Val/Average_MAE', maes[-1], epoch)
+    tensor_writer.add_scalar('Val/Average_RMSE', rmses[-1], epoch)
+    tensor_writer.add_scalar('Val/Average_MAPE', mapes[-1], epoch)
     
     return np.stack(maes, 0), np.stack(rmses, 0), np.stack(mapes, 0)
 
@@ -194,60 +195,18 @@ def test_res(model, valXL, valXH, valTE, valY, mean, std, adjgat):
     mapes.append(mape)
     log_string(log, 'average, mae: %.4f, rmse: %.4f, mape: %.4f' % (mae, rmse, mape))
 
-    # 从 NumPy 数组中提取数据
-    data = pred[:, 0, :]
-
-    # 写入 CSV 文件
-    file_path = '/root/autodl-tmp/MYSTWave/output/export_pred_out/first_pred.csv'
-    with open(file_path, 'w', newline='') as csvfile:
-        writer = csv.writer(csvfile)
-        for row in data:
-            writer.writerow(row)
-
-    log_string(log, f"Data saved to {file_path}")
-
-    # 从 NumPy 数组中提取数据
-    data = pred[:, 1, :]
-
-    # 写入 CSV 文件
-    file_path = '/root/autodl-tmp/MYSTWave/output/export_pred_out/second_pred.csv'
-    with open(file_path, 'w', newline='') as csvfile:
-        writer = csv.writer(csvfile)
-        for row in data:
-            writer.writerow(row)
-
-    log_string(log, f"Data saved to {file_path}")
-
-    # 从 NumPy 数组中提取数据
-    data = label[:, 0, :]
-
-    # 写入 CSV 文件
-    file_path = '/root/autodl-tmp/MYSTWave/output/export_pred_out/first_label.csv'
-    with open(file_path, 'w', newline='') as csvfile:
-        writer = csv.writer(csvfile)
-        for row in data:
-            writer.writerow(row)
-
-    log_string(log, f"Data saved to {file_path}")
-
-    # 从 NumPy 数组中提取数据
-    data = label[:, 1, :]
-
-    # 写入 CSV 文件
-    file_path = '/root/autodl-tmp/MYSTWave/output/export_pred_out/second_label.csv'
-    with open(file_path, 'w', newline='') as csvfile:
-        writer = csv.writer(csvfile)
-        for row in data:
-            writer.writerow(row)
-
-    log_string(log, f"Data saved to {file_path}")
+    # Save predictions for the first and second elements, and labels likewise
+    save_to_csv('/root/autodl-tmp/TFSTL_Upload_Maintenance/output/import_pred_out/first_pred.csv', pred[:, 0, :])
+    save_to_csv('/root/autodl-tmp/TFSTL_Upload_Maintenance/output/import_pred_out/second_pred.csv', pred[:, 1, :])
+    save_to_csv('/root/autodl-tmp/TFSTL_Upload_Maintenance/output/import_pred_out/first_label.csv', label[:, 0, :])
+    save_to_csv('/root/autodl-tmp/TFSTL_Upload_Maintenance/output/import_pred_out/second_label.csv', label[:, 1, :]) 
 
     return np.stack(maes, 0), np.stack(rmses, 0), np.stack(mapes, 0)
 
 def train(model, trainXL, trainXH, trainTE, trainY, trainYL, valXL, valXH, valTE, valY, mean, std, adjgat):
     num_train = trainXL.shape[0]
-    # min_loss = 2000000000.0
-    min_loss = 0.5
+    min_loss = 2000000000.0
+    # min_loss = 0.5
     optimizer = torch.optim.Adam(model.parameters(),
                                      lr=args.learning_rate)
     lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=200,    
@@ -294,10 +253,10 @@ def train(model, trainXL, trainXH, trainTE, trainY, trainYL, valXL, valXH, valTE
               % (epoch, optimizer.param_groups[0]['lr'], train_l_sum / batch_count, time.time() - start))
         tensor_writer.add_scalar('training loss', train_l_sum / batch_count, epoch)
 
-        mae, rmse, mape = res(model, valXL, valXH, valTE, valY, mean, std, adjgat)
-        lr_scheduler.step(mape[-1])
-        if mape[-1] < min_loss:
-            min_loss = mape[-1]
+        mae, rmse, mape = res(model, valXL, valXH, valTE, valY, mean, std, adjgat, epoch, tensor_writer)
+        lr_scheduler.step(mae[-1])
+        if mae[-1] < min_loss:
+            min_loss = mae[-1]
             torch.save(model.state_dict(), args.model_file)
 
 def test(model, valXL, valXH, valTE, valY, mean, std, adjgat):
@@ -319,9 +278,10 @@ def accuracy(predictions, targets):
 
 if __name__ == '__main__':
     log_string(log, "loading data....")
-    train_dataset = TrafficDataset(args, 'train')
-    val_dataset = TrafficDataset(args, 'val', train_dataset.mean, train_dataset.std)
-    test_dataset = TrafficDataset(args, 'test', train_dataset.mean, train_dataset.std)
+    train_dataset = TradeDataset(args, 'train')
+    val_dataset = TradeDataset(args, 'val', train_dataset.mean, train_dataset.std)
+    test_dataset = TradeDataset(args, 'test', train_dataset.mean, train_dataset.std)
+    whole_dataset = TradeDataset(args, 'whole', train_dataset.mean, train_dataset.std)
     adjgat = loadGraph(args)
     adjgat = torch.from_numpy(adjgat).float().to(device)
     log_string(log, "loading end....")
@@ -337,4 +297,5 @@ if __name__ == '__main__':
 
     log_string(log, "testing begin....")
     test(model, test_dataset.XL, test_dataset.XH, test_dataset.TE, test_dataset.Y, train_dataset.mean, train_dataset.std, adjgat)
+    # test(model, whole_dataset.XL, whole_dataset.XH, whole_dataset.TE, whole_dataset.Y, train_dataset.mean, train_dataset.std, adjgat)
     log_string(log, "testing end....")

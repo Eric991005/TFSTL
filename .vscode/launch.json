@@ -4,7 +4,7 @@
         "name": "TFSTL(import)",
         "type": "python",
         "request": "launch",
-        "program": "/root/autodl-tmp/MYSTWave/train_meta_import.py",
+        "program": "/root/autodl-tmp/TFSTL_Upload_Maintenance/train_meta_import.py",
         "console": "integratedTerminal",
         "env": {
           "PYTHONPATH": "${workspaceFolder}",
@@ -21,7 +21,7 @@
         "name": "TFSTL(export)",
         "type": "python",
         "request": "launch",
-        "program": "/root/autodl-tmp/MYSTWave/train_meta_export.py",
+        "program": "/root/autodl-tmp/TFSTL_Upload_Maintenance/train_meta_export.py",
         "console": "integratedTerminal",
         "env": {
           "PYTHONPATH": "${workspaceFolder}",

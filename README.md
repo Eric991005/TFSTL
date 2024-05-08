@@ -1,7 +1,7 @@
 # TFSTL
 This is a PyTorch implementation of the paper: Trade Forecasting via Efficient Multi-commodity STL Decomposition based Neural Networks.
 
-[12/2023] TFSTL is currently under peer review.
+[05/2024] TFSTL is currently under peer review by the International Journal of Forecasting.
 
 ## Requirements
 
@@ -16,9 +16,19 @@ Install the dependencies using the following command:
 
 ## Data Preparation
 
-The data for this project is located in the `data/MYDATA` folder. Within this folder, there are two subfolders organizing the dataset: 
-- The `import` folder contains data related to imports.
-- The `export` folder contains data related to exports.
+The data for the TFSTL project is organized as follows:
+
+1. **Data Location and Structure**: The dataset is located within the `data/MYDATA` folder. This folder contains two subfolders:
+   - `new_import`: Contains data related to imports.
+   - `new_export`: Contains data related to exports.
+
+2. **Original Data Files**: The initial datasets are stored in two CSV files:
+   - `import_new.csv`: Contains the import data.
+   - `export_new.csv`: Contains the export data.
+
+3. **Generating Additional Input Data**:
+   - If you wish to generate additional input data for the model, you can refer to the methods outlined in the `TFSTL_Data_generation_methods` folder.
+   - To process and prepare all the model input data, you should use the `TFSTL_data_preprocessing_script.py`.
 
 ### Data Description
 
@@ -78,3 +88,4 @@ python train_meta_export.py --config ./config/MYDATA_meta_export.conf
     ```
 - cpt folder: This folder stores all the parameters of the import and export models, facilitating direct reuse and further training.
 - .vscode folder: This folder includes configuration files for the Visual Studio Code (VSCode) Integrated Development Environment (IDE). These files are particularly useful when debugging in VSCode. Be aware that you may need to modify the file paths in these configurations to match your custom project paths.
+- result_check_and_visualize folder: This folder contains the script to check the results and visualize the output.
